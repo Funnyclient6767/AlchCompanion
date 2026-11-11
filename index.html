@@ -32,6 +32,11 @@ input{width:110px}
 button{cursor:pointer}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.rune{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin:16px 0 0;
+  padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.rune h2{font:600 1rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+.rune strong{font:600 1.6rem/1.2 Georgia,"Times New Roman",serif;color:var(--accent)}
+.rune span{color:var(--muted);font-size:.9rem}
 #status{margin:16px 2px;color:var(--muted);min-height:1.5em}
 #status.err{color:#c0392b}
 #best{background:var(--accent-bg);border-left:4px solid var(--accent);border-radius:4px;
@@ -74,6 +79,12 @@ td.profit{color:var(--good);font-weight:600}
     </label>
     <button class="primary" id="refresh" type="button">Refresh prices</button>
   </div>
+
+  <section class="rune" aria-labelledby="runeTitle">
+    <h2 id="runeTitle">Nature rune price</h2>
+    <strong id="runePrice">–</strong>
+    <span id="runeDetail">Loading…</span>
+  </section>
 
   <div id="status" role="status" aria-live="polite"></div>
   <p id="best" hidden></p>
@@ -132,10 +143,16 @@ async function load() {
         vol[id] = (vol[id] || 0) + (d.highPriceVolume || 0) + (d.lowPriceVolume || 0);
       }
     }
-    nat = (prices[NATURE] || {}).high;
-    if (!nat) {
-      nat = (await getJSON(MAIN + "latest")).data[NATURE].high;
+    let nr = prices[NATURE] || {};
+    let fromMain = false;
+    if (!nr.high) {
+      nr = (await getJSON(MAIN + "latest")).data[NATURE];
+      fromMain = true;
     }
+    nat = nr.high;
+    $("runePrice").textContent = fmt(nat) + " gp";
+    $("runeDetail").textContent = "Buy " + fmt(nr.high) + " gp, sell " + (nr.low ? fmt(nr.low) : "?") +
+      " gp (" + (fromMain ? "main game price, none listed for this world" : $("world").value === "hc" ? "hardcore" : "main game") + ")";
     all = [];
     for (const [id, p] of Object.entries(prices)) {
       const it = mapping[id];
@@ -150,10 +167,12 @@ async function load() {
       });
     }
     source = $("world").value === "hc" ? "hardcore" : "main game";
-    setStatus("Showing " + source + " prices. Nature rune: " + fmt(nat) + " gp. Updated " + new Date().toLocaleTimeString() + ".");
+    setStatus("Showing " + source + " prices. Updated " + new Date().toLocaleTimeString() + ".");
     render();
   } catch (e) {
     all = [];
+    $("runePrice").textContent = "–";
+    $("runeDetail").textContent = "Unavailable";
     render();
     setStatus("Couldn’t load prices. Try switching the world or refreshing. (" + e.message + ")", true);
   } finally {
