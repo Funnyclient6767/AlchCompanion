@@ -71,7 +71,16 @@ td.profit{color:var(--good);font-weight:600}
     <label>Minimum profit per cast
       <input id="minProfit" type="number" min="0" step="10" value="100">
     </label>
-    <label>Minimum traded in 4 hours
+    <label>Time window
+      <select id="hours">
+        <option value="1">1 hour</option>
+        <option value="2">2 hours</option>
+        <option value="4" selected>4 hours</option>
+        <option value="8">8 hours</option>
+        <option value="12">12 hours</option>
+      </select>
+    </label>
+    <label>Minimum traded in that time
       <input id="minVol" type="number" min="0" step="10" value="50">
     </label>
     <label>Rows to show
@@ -96,24 +105,25 @@ td.profit{color:var(--good);font-weight:600}
     </table>
   </div>
 
-  <p class="note">Profit per 4 hours assumes you cast about 4,800 alchs in that time. It is capped by the item’s Grand Exchange buy limit and by how many were traded in the last 4 hours. Item values and buy limits are the same in every world, so they always come from the main game data.</p>
+  <p class="note">Profit over the time window assumes you cast about 1,200 alchs per hour. It is capped by the item’s Grand Exchange buy limit (which resets every 4 hours) and by how many were traded in that window. Item values and buy limits are the same in every world, so they always come from the main game data.</p>
 </main>
 
 <script>
 const MAIN = "https://prices.runescape.wiki/api/v1/osrs/";
 const HC = "https://prices.runescape.wiki/api/v2/osrs-hc/";
 const NATURE = "561";
-const CASTS_4H = 4800;
-const COLS = [
+const CASTS_PER_HOUR = 1200;
+const hourly = new Map();
+const cols = h => [
   ["name", "Item"], ["buy", "Buy price"], ["alch", "Alch value"], ["profit", "Profit per cast"],
-  ["volume", "Traded in 4h"], ["limit", "Buy limit"], ["per4h", "Profit per 4h"]
+  ["volume", "Traded in " + h + "h"], ["limit", "Buy limit"], ["total", "Profit over " + h + "h"]
 ];
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString("en-GB");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-let mapping = null, all = [], nat = 0, source = "";
-let sortKey = "per4h", desc = true;
+let mapping = null, all = [], nat = 0, source = "", winH = 4;
+let sortKey = "total", desc = true;
 
 async function getJSON(url) {
   const r = await fetch(url);
@@ -131,11 +141,21 @@ async function load() {
       const list = await getJSON(MAIN + "mapping");
       mapping = Object.fromEntries(list.map(i => [i.id, i]));
     }
+    const H = +$("hours").value;
     const hour = Math.floor(Date.now() / 3600000) * 3600;
+    const hourData = k => {
+      const key = base + "|" + (hour - 3600 * k);
+      if (!hourly.has(key)) {
+        hourly.set(key, getJSON(base + "1h?timestamp=" + (hour - 3600 * k))
+          .catch(e => { hourly.delete(key); throw e; }));
+      }
+      return hourly.get(key);
+    };
     const [latest, ...hours] = await Promise.all([
       getJSON(base + "latest"),
-      ...[1, 2, 3, 4].map(k => getJSON(base + "1h?timestamp=" + (hour - 3600 * k)))
+      ...Array.from({ length: H }, (_, i) => hourData(i + 1))
     ]);
+    winH = H;
     const prices = latest.data;
     const vol = {};
     for (const h of hours) {
@@ -163,7 +183,7 @@ async function load() {
       const limit = it.limit || 0;
       all.push({
         name: it.name, buy: p.high, alch: it.highalch, profit, volume, limit,
-        per4h: limit ? profit * Math.min(limit, CASTS_4H, volume) : 0
+        total: limit ? profit * Math.min(limit * Math.ceil(H / 4), CASTS_PER_HOUR * H, volume) : 0
       });
     }
     source = $("world").value === "hc" ? "hardcore" : "main game";
@@ -205,10 +225,11 @@ function render() {
 
   if (all.length && !fallback) {
     const pick = all.filter(r => r.profit >= minProfit && r.volume >= minVol)
-      .sort((a, b) => b.per4h - a.per4h)[0];
+      .sort((a, b) => b.total - a.total)[0];
+    const span = winH + (winH === 1 ? " hour" : " hours");
     best.hidden = false;
-    best.textContent = "Best for 4 hours: " + pick.name + ". " + fmt(pick.profit) +
-      " gp profit per cast, up to " + fmt(pick.per4h) + " gp over 4 hours.";
+    best.textContent = "Best for " + span + ": " + pick.name + ". " + fmt(pick.profit) +
+      " gp profit per cast, up to " + fmt(pick.total) + " gp over " + span + ".";
   } else if (fallback) {
     best.hidden = false;
     best.textContent = "Nothing meets your filters, so this shows every profitable item. Lower the minimums to match what’s available.";
@@ -216,13 +237,13 @@ function render() {
     best.hidden = true;
   }
 
-  $("head").innerHTML = COLS.map(([k, label]) =>
+  $("head").innerHTML = cols(winH).map(([k, label]) =>
     '<th scope="col"' + (k === sortKey ? ' aria-sort="' + (desc ? "descending" : "ascending") + '"' : "") +
     '><button type="button" data-k="' + k + '">' + label + "</button></th>").join("");
   $("body").innerHTML = rows.length ? rows.map(r =>
     "<tr><td>" + esc(r.name) + "</td><td>" + fmt(r.buy) + "</td><td>" + fmt(r.alch) +
     '</td><td class="profit">' + fmt(r.profit) + "</td><td>" + fmt(r.volume) +
-    "</td><td>" + (r.limit ? fmt(r.limit) : "?") + "</td><td>" + fmt(r.per4h) + "</td></tr>").join("")
+    "</td><td>" + (r.limit ? fmt(r.limit) : "?") + "</td><td>" + fmt(r.total) + "</td></tr>").join("")
     : '<tr><td colspan="7" style="text-align:center;color:var(--muted)">No profitable items to show.</td></tr>';
 }
 
@@ -235,6 +256,7 @@ $("head").addEventListener("click", e => {
 });
 ["minProfit", "minVol", "top"].forEach(id => $(id).addEventListener("input", render));
 $("world").addEventListener("change", load);
+$("hours").addEventListener("change", load);
 $("refresh").addEventListener("click", load);
 load();
 </script>
