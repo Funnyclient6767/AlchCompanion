@@ -4,61 +4,71 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Alch finder for Old School RuneScape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f3f4f1;--surface:#fff;--line:#d5d9d4;--text:#1d2226;--muted:#5d6762;
-  --accent:#8a6400;--accent-bg:#f3e7c4;--good:#1f7a3d;--focus:#1d5fd1;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#16181a;--surface:#1f2326;--line:#343b3f;--text:#e6e2d6;--muted:#9aa39f;
-    --accent:#e0b13a;--accent-bg:#2c2813;--good:#6fcf8a;--focus:#7aa7ff;
-    color-scheme:dark;
-  }
+  --bg:#2b2519;--panel:#3b3427;--panel2:#352f23;--edge:#17120a;--bevel:#5c4e36;
+  --text:#eadfbc;--muted:#bfae7d;--orange:#ff981f;--gold:#ffd83a;--good:#2ee62e;
+  --focus:#ffff00;--head:"Pixelify Sans","Trebuchet MS",system-ui,sans-serif;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);
+h1,h2,button,th,.rune strong{font-variant-ligatures:none;font-feature-settings:"liga" 0,"clig" 0,"calt" 0;text-rendering:optimizeSpeed}
+body{margin:0;color:var(--text);
+  background:var(--bg) repeating-linear-gradient(45deg,rgba(0,0,0,.10) 0 2px,transparent 2px 7px);
   font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
 main{max-width:980px;margin:0 auto;padding:32px 16px 48px}
-h1{font:600 clamp(1.7rem,4vw,2.4rem)/1.15 Georgia,"Times New Roman",serif;margin:0 0 6px}
+h1{font:700 clamp(2rem,5vw,2.8rem)/1.1 var(--head);margin:0 0 8px;color:var(--orange);
+  text-shadow:2px 2px 0 #000;display:flex;align-items:center;gap:12px}
+h1::before{content:"";flex:none;width:.7em;height:.7em;border-radius:50%;border:2px solid #7a5a10;
+  background:radial-gradient(circle at 35% 30%,#fff3a0,#ffd83a 45%,#b8860b);box-shadow:1px 1px 0 #000}
 .sub{color:var(--muted);margin:0 0 24px;max-width:60ch}
-.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:end;background:var(--surface);
-  border:1px solid var(--line);border-radius:8px;padding:16px}
+.controls,.tablewrap,.rune{background:var(--panel);border:2px solid var(--edge);border-radius:3px;
+  box-shadow:inset 0 0 0 2px var(--bevel),0 3px 0 #0d0a05}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:end;padding:18px}
 label{display:flex;flex-direction:column;gap:4px;font-size:.88rem;color:var(--muted)}
-input,select,button{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);
-  border-radius:6px;padding:8px 10px}
+input,select,button{font:inherit;color:var(--gold);background:#1f1a11;border:2px solid var(--edge);
+  border-radius:2px;padding:7px 10px;box-shadow:inset 1px 1px 0 #000,inset -1px -1px 0 var(--bevel)}
 input{width:110px}
-button{cursor:pointer}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+button{cursor:pointer;font-family:var(--head);font-weight:500;color:var(--orange);text-shadow:1px 1px 0 #000;
+  background:linear-gradient(#5b5140,#3f3729);box-shadow:inset 0 0 0 1px var(--bevel),0 2px 0 #0d0a05}
+button:hover:not(:disabled){background:linear-gradient(#6c6150,#4b4132)}
+button:active:not(:disabled){transform:translateY(1px)}
+button.primary{color:#fff;background:linear-gradient(#a37d22,#6b5114)}
+button.primary:hover:not(:disabled){background:linear-gradient(#b88f2a,#7b5d18)}
+button:disabled{opacity:.6;cursor:default}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.rune{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin:16px 0 0;
-  padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
-.rune h2{font:600 1rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
-.rune strong{font:600 1.6rem/1.2 Georgia,"Times New Roman",serif;color:var(--accent)}
+.rune{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin:16px 0 0;padding:12px 18px}
+.rune h2{font:500 1.05rem/1.4 var(--head);margin:0;color:var(--orange);text-shadow:1px 1px 0 #000}
+.rune strong{font:700 1.7rem/1.2 var(--head);color:var(--gold);text-shadow:2px 2px 0 #000}
 .rune span{color:var(--muted);font-size:.9rem}
 #status{margin:16px 2px;color:var(--muted);min-height:1.5em}
-#status.err{color:#c0392b}
-#best{background:var(--accent-bg);border-left:4px solid var(--accent);border-radius:4px;
-  padding:12px 16px;margin:0 0 16px}
+#status.err{color:#ff6b5a}
+#best{background:#d6c9a4;color:#2b1d0a;border:3px solid #6b4f1d;border-radius:3px;
+  box-shadow:inset 0 0 0 1px #f0e6c4,0 2px 0 #0d0a05;padding:12px 16px;margin:0 0 16px;font-weight:600}
 #best[hidden]{display:none}
-.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.tablewrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:640px}
-th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #251f14;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
-tbody tr:last-child td{border-bottom:0}
-th{font-weight:600;font-size:.9rem}
+thead tr{background:#241f14}
+th{font-family:var(--head);font-weight:500;font-size:.95rem;color:var(--orange);text-shadow:1px 1px 0 #000}
 th button{all:unset;cursor:pointer;display:inline-block;padding:2px 0}
 th button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 th[aria-sort="ascending"] button::after{content:" \25B2";font-size:.7em}
 th[aria-sort="descending"] button::after{content:" \25BC";font-size:.7em}
-td.profit{color:var(--good);font-weight:600}
+tbody tr:nth-child(even){background:var(--panel2)}
+tbody tr:hover{background:#4a4232}
+tbody tr:last-child td{border-bottom:0}
+td.profit{color:var(--good);font-weight:700;text-shadow:1px 1px 0 #000}
 .note{color:var(--muted);font-size:.88rem;margin-top:16px;max-width:70ch}
 </style>
 </head>
 <body>
 <main>
-  <h1>Alch finder</h1>
+  <h1>Alch f&zwnj;inder</h1>
   <p class="sub">Lists items that make a profit when you high alch them, after paying for the nature rune. Prices come live from the OSRS Wiki.</p>
 
   <div class="controls">
